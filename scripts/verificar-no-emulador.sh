@@ -13,19 +13,31 @@ capturar() {
   adb exec-out screencap -p > "$SAIDA/$1.png"
 }
 
-# Espera o texto aparecer na tela (até ~30 s) ou falha mostrando o que havia.
+# Em caso de falha, guarda a tela e o log do Android para diagnóstico.
+diagnosticar() {
+  capturar falha || true
+  adb logcat -d > "$SAIDA/logcat.txt" 2>&1 || true
+}
+trap 'diagnosticar' ERR
+
+# Copia a árvore de acessibilidade da tela atual para um arquivo local.
+ler_tela() {
+  adb shell uiautomator dump /sdcard/tela.xml > /dev/null 2>&1 || return 1
+  adb pull /sdcard/tela.xml "$SAIDA/tela.xml" > /dev/null 2>&1 || return 1
+}
+
+# Espera o texto aparecer na tela (até ~60 s) ou falha mostrando o que havia.
 esperar_texto() {
-  for _ in $(seq 1 15); do
-    adb shell uiautomator dump /sdcard/tela.xml > /dev/null 2>&1 || true
-    if adb shell cat /sdcard/tela.xml | grep -q "$1"; then
+  for _ in $(seq 1 20); do
+    if ler_tela && grep -qF "$1" "$SAIDA/tela.xml"; then
       echo "ok: \"$1\""
       return 0
     fi
-    sleep 2
+    sleep 3
   done
   echo "FALHA: \"$1\" não apareceu. Textos na tela:"
-  adb shell cat /sdcard/tela.xml | grep -o 'text="[^"]*"' | sort -u || true
-  exit 1
+  grep -o 'text="[^"]*"' "$SAIDA/tela.xml" | sort -u || true
+  return 1
 }
 
 abrir_link() {
