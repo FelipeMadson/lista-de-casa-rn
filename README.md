@@ -4,6 +4,10 @@ Versão em React Native do aplicativo [Lista de casa](https://github.com/FelipeM
 
 Disciplina Desenvolvimento para Dispositivos Móveis — IFB, 2026.
 
+## Demonstração
+
+[Experimente no navegador](https://felipemadson.github.io/lista-de-casa-rn/). É o mesmo código das telas do aplicativo Android, exportado para a web com React Native Web. Só a fonte de dados muda: no navegador, os itens ficam no `localStorage`, por meio de outra implementação do mesmo contrato `ItemRepository` (`dependencias.web.ts`). O módulo nativo não existe na web, então a tela "Sobre" informa que os dados do aparelho estão indisponíveis.
+
 ## O que faz
 
 - Cadastra, edita e exclui itens com categoria, quantidade e observação.
@@ -23,6 +27,8 @@ O código fica em três camadas, como na versão Flutter:
 | Domínio | `src/dominio/` | Entidade `Item`, regras puras (validação, quantidade, ordenação, resumo) e o contrato `ItemRepository`. Não importa React Native nem SQLite. |
 | Dados | `src/dados/` | Repositório SQLite (`expo-sqlite`), migrações por `PRAGMA user_version`, serviço remoto simulado, nova tentativa com backoff e jitter, sincronizador e acesso ao módulo nativo. |
 | Apresentação | `src/apresentacao/` | Telas, componentes, tema e estado (Zustand). `dependencias.ts` é a raiz de composição: o único arquivo que conhece as classes concretas da camada de dados. |
+
+Para trocar a fonte de dados, basta outra raiz de composição: `dependencias.web.ts` usa `ItemRepositoryNavegador` (localStorage) no lugar do SQLite, sem alterar nenhuma tela, store ou regra. É a demonstração prática da pergunta "o que muda se a fonte de dados for trocada?".
 
 `src/app/` contém apenas as rotas do Expo Router; cada arquivo entrega a tela correspondente da camada de apresentação. O módulo nativo fica em `modules/dispositivo/` e é ligado ao app automaticamente no build.
 
@@ -48,7 +54,8 @@ Requer Node.js 24 e, para rodar no aparelho, o ambiente Android (Android Studio,
 npm install
 npm run typecheck   # tipos do app e dos testes
 npm run lint
-npm test            # 33 testes, inclusive com SQLite real
+npm test            # 38 testes, inclusive com SQLite real
+npm run build:web   # gera o site em dist/
 npm run android     # compila e instala no emulador ou aparelho conectado
 ```
 
@@ -72,6 +79,8 @@ O workflow [Verificação Android](.github/workflows/android.yml) roda a cada en
 2. gera a pasta `android/` com `expo prebuild` e compila o APK de release;
 3. instala o APK em um emulador Android 15 e confere, pela árvore de acessibilidade, a tela inicial, a ligação profunda, o módulo nativo, a data de criação do banco e a faixa offline ([script](scripts/verificar-no-emulador.sh)).
 
+O workflow [Publicação no GitHub Pages](.github/workflows/pages.yml) exporta a versão web e publica o site a cada envio para `main`.
+
 O APK (`lista-de-casa-rn-v1.0.0.apk`) e as capturas de tela ficam nos artefatos de cada execução. Ele é assinado com a chave de depuração e serve apenas para demonstração acadêmica.
 
 ## Testes
@@ -80,6 +89,7 @@ O APK (`lista-de-casa-rn-v1.0.0.apk`) e as capturas de tela ficam nos artefatos 
 |---|---|
 | `test/dominio/regrasItem.test.ts` | Validação do nome, limites da quantidade, ordenação e resumo |
 | `test/dados/itemRepositorySqlite.test.ts` | Esquema, migração, CRUD, restrição `CHECK` e concorrência otimista, com SQLite real (`node:sqlite`) e o mesmo SQL do app |
+| `test/dados/itemRepositoryNavegador.test.ts` | Repositório da versão web: persistência entre recargas, ids e as mesmas regras de envio |
 | `test/dados/novaTentativa.test.ts` | Espera exponencial com jitter, limite de tentativas e erros não transitórios |
 | `test/dados/sincronizador.test.ts` | Envio dos pendentes e item que continua pendente após falhar |
 | `test/apresentacao/estado.test.ts` | Estados de carregamento, erro e conteúdo, remoção otimista desfeita, sincronização offline e leitura do id da rota |

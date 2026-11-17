@@ -23,13 +23,23 @@
       "bundleIdentifier": "br.com.felipemadison.listadecasa"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "bundler": "metro",
+      "name": "Lista de casa",
+      "shortName": "Lista de casa",
+      "lang": "pt-BR",
+      "themeColor": "#F6F6F4",
+      "backgroundColor": "#F6F6F4"
     },
     "plugins": [
       "expo-router",
       "expo-sqlite",
       "expo-system-ui",
       "expo-font"
-    ]
+    ],
+    "experiments": {
+      "baseUrl": "/lista-de-casa-rn"
+    }
   }
 }
