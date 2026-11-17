@@ -1,0 +1,72 @@
+name: Verificação Android
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  qualidade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npx expo-doctor
+
+  apk:
+    needs: qualidade
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci
+      # Gera a pasta android/ a partir do app.json (não versionada).
+      - run: npx expo prebuild --platform android --no-install
+      - name: Compilar APK de release
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+      - name: Renomear com identificador e versão
+        run: cp android/app/build/outputs/apk/release/app-release.apk lista-de-casa-rn-v1.0.0.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lista-de-casa-rn-apk
+          path: lista-de-casa-rn-v1.0.0.apk
+
+  emulador:
+    needs: apk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: lista-de-casa-rn-apk
+      - name: Habilitar aceleração do emulador
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Testar no Android
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          disable-animations: true
+          script: bash scripts/verificar-no-emulador.sh lista-de-casa-rn-v1.0.0.apk capturas
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capturas-android
+          path: capturas
