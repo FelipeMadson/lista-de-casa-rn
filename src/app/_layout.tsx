@@ -25,6 +25,9 @@ export default function Layout() {
   useEffect(() => {
     void itensStore.getState().carregar();
 
+    // O app usa só "há rede ou não" (isConnected); dispensa as requisições
+    // periódicas que o NetInfo faria para testar o acesso à internet.
+    NetInfo.configure({ reachabilityShouldRun: () => false });
     const pararRede = NetInfo.addEventListener((estado) =>
       conectividadeStore.getState().definir(estaOnline(estado)),
     );
