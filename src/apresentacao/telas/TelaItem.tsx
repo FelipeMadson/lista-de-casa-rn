@@ -2,7 +2,6 @@ import { router, Stack, usePreventRemove } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Pressable,
   ScrollView,
@@ -24,6 +23,7 @@ import {
 import { Aviso } from '../componentes/Aviso';
 import { Botao } from '../componentes/Botao';
 import { BotaoIcone } from '../componentes/BotaoIcone';
+import { confirmar } from '../confirmar';
 import { itensStore, useItens } from '../dependencias';
 import { mensagemDeErro } from '../estado/mensagemDeErro';
 import { alvoMinimo, espaco, larguraMaximaConteudo, raio, useCores } from '../tema';
@@ -82,17 +82,16 @@ function FormularioItem({ item }: { item?: Item }) {
   // Equivalente ao PopScope do Flutter (Aula 19): bloqueia "voltar" — botão
   // do sistema ou do cabeçalho — enquanto houver alterações não salvas.
   usePreventRemove(alterado && !concluido, ({ repeat }) => {
-    Alert.alert('Descartar alterações?', 'As alterações feitas neste formulário serão perdidas.', [
-      { text: 'Continuar editando', style: 'cancel' },
-      {
-        text: 'Descartar',
-        style: 'destructive',
-        onPress: () => {
-          setConcluido(true); // desliga a proteção
-          repeat(); // reenvia a navegação que foi bloqueada
-        },
-      },
-    ]);
+    void confirmar({
+      titulo: 'Descartar alterações?',
+      mensagem: 'As alterações feitas neste formulário serão perdidas.',
+      cancelar: 'Continuar editando',
+      confirmar: 'Descartar',
+    }).then((descartar) => {
+      if (!descartar) return;
+      setConcluido(true); // desliga a proteção
+      repeat(); // reenvia a navegação que foi bloqueada
+    });
   });
 
   // Depois de salvar, a proteção já está desligada e a tela pode sair.
