@@ -19,8 +19,7 @@ diagnosticar() {
   capturar falha || true
   adb logcat -d > "$SAIDA/logcat.txt" 2>&1 || true
   local erros
-  erros=$(grep -E "FATAL EXCEPTION|AndroidRuntime|ReactNativeJS.*(Error|error)" "$SAIDA/logcat.txt" | head -n 25 | tr '
-' ' ' || true)
+  erros=$(grep -E "FATAL EXCEPTION|AndroidRuntime|ReactNativeJS.*(Error|error)" "$SAIDA/logcat.txt" | head -n 25 | paste -sd ' ' || true)
   echo "::error::Log do Android: ${erros:-nenhum erro registrado}"
 }
 trap 'diagnosticar' ERR
@@ -42,10 +41,8 @@ esperar_texto() {
     sleep 3
   done
   local textos
-  textos=$(grep -o 'text="[^"]*"' "$SAIDA/tela.xml" 2>/dev/null | sort -u | tr '
-' ' ' || true)
-  echo "::error::\"$1\" não apareceu. Textos na tela: ${textos:-nenhum}. uiautomator: $(tr '
-' ' ' < "$SAIDA/dump.txt" 2>/dev/null)"
+  textos=$(grep -o 'text="[^"]*"' "$SAIDA/tela.xml" 2>/dev/null | sort -u | paste -sd ' ' || true)
+  echo "::error::\"$1\" não apareceu. Textos na tela: ${textos:-nenhum}. uiautomator: $(paste -sd ' ' "$SAIDA/dump.txt" 2>/dev/null)"
   return 1
 }
 
