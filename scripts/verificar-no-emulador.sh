@@ -75,8 +75,16 @@ esperar_texto "bateria em"
 esperar_texto "Criado neste aparelho em"
 capturar 04-sobre
 
+echo "== Voltar à lista"
+# "Voltar" desempilha Sobre, item inexistente e formulário (sem alterações,
+# então não há diálogo). A ligação profunda manteve a lista na base da pilha.
+for _ in 1 2 3; do
+  adb shell input keyevent KEYCODE_BACK
+  sleep 1
+done
+esperar_texto "A lista está vazia."
+
 echo "== Sem conexão"
-adb shell am start -W -n "$PACOTE/.MainActivity" > /dev/null
 adb shell svc wifi disable
 adb shell svc data disable
 esperar_texto "Sem conexão"
