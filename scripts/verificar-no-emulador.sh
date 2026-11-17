@@ -14,15 +14,21 @@ capturar() {
 }
 
 # Em caso de falha, guarda a tela e o log do Android para diagnóstico.
+# As linhas "::error::" viram anotações visíveis no resumo da execução.
 diagnosticar() {
   capturar falha || true
   adb logcat -d > "$SAIDA/logcat.txt" 2>&1 || true
+  local erros
+  erros=$(grep -E "FATAL EXCEPTION|AndroidRuntime|ReactNativeJS.*(Error|error)" "$SAIDA/logcat.txt" | head -n 25 | tr '
+' ' ' || true)
+  echo "::error::Log do Android: ${erros:-nenhum erro registrado}"
 }
 trap 'diagnosticar' ERR
 
 # Copia a árvore de acessibilidade da tela atual para um arquivo local.
+# A resposta do uiautomator fica em dump.txt para o diagnóstico.
 ler_tela() {
-  adb shell uiautomator dump /sdcard/tela.xml > /dev/null 2>&1 || return 1
+  adb shell uiautomator dump /sdcard/tela.xml > "$SAIDA/dump.txt" 2>&1 || return 1
   adb pull /sdcard/tela.xml "$SAIDA/tela.xml" > /dev/null 2>&1 || return 1
 }
 
@@ -35,8 +41,11 @@ esperar_texto() {
     fi
     sleep 3
   done
-  echo "FALHA: \"$1\" não apareceu. Textos na tela:"
-  grep -o 'text="[^"]*"' "$SAIDA/tela.xml" | sort -u || true
+  local textos
+  textos=$(grep -o 'text="[^"]*"' "$SAIDA/tela.xml" 2>/dev/null | sort -u | tr '
+' ' ' || true)
+  echo "::error::\"$1\" não apareceu. Textos na tela: ${textos:-nenhum}. uiautomator: $(tr '
+' ' ' < "$SAIDA/dump.txt" 2>/dev/null)"
   return 1
 }
 
